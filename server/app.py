@@ -83,16 +83,24 @@ class CheckSession(Resource):
             return UserSchema().dump(user), 200
         
         return {}, 401
-
+    
+@app.before_request
+def require_login_for_member_only():
+    protected_endpoints = {'member_index', 'member_article'}
+    if request.endpoint in protected_endpoints and not session.get('user_id'):
+        return {}, 401
+    
 class MemberOnlyIndex(Resource):
     
     def get(self):
-        pass
+        articles = Article.query.filter_by(is_member_only=True).all()
+        return [ArticleSchema().dump(a) for a in articles], 200
 
 class MemberOnlyArticle(Resource):
     
     def get(self, id):
-        pass
+        article = Article.query.filter(Article.id == id).first()
+        return ArticleSchema().dump(article), 200
 
 api.add_resource(ClearSession, '/clear', endpoint='clear')
 api.add_resource(IndexArticle, '/articles', endpoint='article_list')
